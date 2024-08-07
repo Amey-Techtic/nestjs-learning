@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UsePipes } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, UsePipes } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDTO } from './dto/User.dto';
 import { ValidationPipe } from '@nestjs/common';
@@ -6,7 +6,6 @@ import {
   returnErrorResponse,
   returnSuccessResponse,
 } from 'src/common/returnResponse.common';
-import { response } from 'express';
 import { UpdateUserDTO } from './dto/UpdateUser.dto';
 
 @Controller('users')
@@ -14,12 +13,15 @@ export class UsersController {
   constructor(private usersService: UsersService) {}
 
   @Post()
+  //@UsePipes() decorator is used to apply validation rules to the incoming request data.
   @UsePipes(new ValidationPipe())
+  //The ValidationPipe automatically validates the incoming data against the constraints defined in your DTO (Data Transfer Object) classes
   async createUser(@Body() createUserDto: CreateUserDTO) {
     try {
       const userCreated = await this.usersService.createUser(createUserDto);
 
       if (!userCreated?.success) {
+        
         return returnErrorResponse({
           status: false,
           statusCode: userCreated?.statusCode,
@@ -33,10 +35,11 @@ export class UsersController {
         data: userCreated?.data,
       });
     } catch (error) {
+
       return returnErrorResponse({
         status: false,
         statusCode: 400,
-        error: 'Something went wrong while creating new user.',
+        error: error.toString(),
       });
     }
   }
@@ -68,10 +71,10 @@ export class UsersController {
   }
 
   @Get()
-  async getUsers(){
+  async getUsers(@Query("search") search: string){
     try {
         
-        const userData = await this.usersService.getUser();
+        const userData = await this.usersService.getUser(search);
         
         if(!userData.success){
            return returnErrorResponse({
@@ -96,6 +99,7 @@ export class UsersController {
   }
 
   @Patch(':id')
+  @UsePipes(new ValidationPipe())
   async updateUser(@Param('id') id: string, @Body() updateUserDto: UpdateUserDTO){
     try {
         const userUpdated = await this.usersService.updateUser(id, updateUserDto);
